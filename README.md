@@ -45,7 +45,9 @@ CS RAG Project/
 ├── book/                            # Class 12 CS Textbooks
 ├── Ncert Solutions/                 # NCERT chapter-wise solutions
 ├── Notes/                           # CBSE chapter revision notes
-└── PYQ/                             # CBSE Previous Year Question Papers
+├── PYQ/                             # CBSE Previous Year Question Papers
+├── Lab Programs/                    # Class 12 Computer Science Lab Practicals
+└── SSM Question Bank/               # Question Bank & Solutions Key
 ```
 
 ---

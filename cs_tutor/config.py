@@ -36,6 +36,8 @@ PDF_DIRS = [
     BASE_DIR / "Ncert Solutions",
     BASE_DIR / "Notes",
     BASE_DIR / "PYQ",
+    BASE_DIR / "Lab Programs",
+    BASE_DIR / "SSM Question Bank",
 ]
 VECTOR_STORE_DIR = BASE_DIR / "cs_tutor" / "vectorstore"
 

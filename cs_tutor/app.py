@@ -68,6 +68,8 @@ with st.sidebar:
 | 📝 NCERT Solutions | [Ncert Solutions]({REPO}/Ncert%20Solutions) |
 | 📌 Revision Notes | [Notes]({REPO}/Notes) |
 | 📋 Previous Year Papers (PYQ) | [PYQ]({REPO}/PYQ) |
+| 💻 Lab Programs | [Lab Programs]({REPO}/Lab%20Programs) |
+| 🎯 SSM Question Bank | [SSM Question Bank]({REPO}/SSM%20Question%20Bank) |
 """)
     st.divider()
 
