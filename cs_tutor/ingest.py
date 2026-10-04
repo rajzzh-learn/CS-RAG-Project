@@ -3,20 +3,22 @@ PDF ingestion pipeline.
 Loads all PDFs from configured directories, splits them into chunks,
 and persists a ChromaDB vector store for retrieval.
 """
+import os
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()  # load .env for local runs
 
+# Force CPU and disable meta-device loading — avoids NotImplementedError on Streamlit Cloud (Linux/Docker)
+os.environ.setdefault("SENTENCE_TRANSFORMERS_HOME", "/tmp/st_cache")
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["ACCELERATE_USE_CPU"] = "true"
+
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
-import os
-
-# Force CPU — avoids NotImplementedError on Streamlit Cloud (no MPS/CUDA)
-os.environ.setdefault("SENTENCE_TRANSFORMERS_HOME", "/tmp/st_cache")
 
 from cs_tutor.config import (
     PDF_DIRS,
@@ -45,17 +47,30 @@ def load_pdfs(pdf_dirs: list[Path]) -> list:
     return docs
 
 
+def get_embedding_function() -> HuggingFaceEmbeddings:
+    """Instantiate HuggingFaceEmbeddings with safe fallbacks for Streamlit Cloud."""
+    try:
+        return HuggingFaceEmbeddings(
+            model_name=EMBEDDING_MODEL,
+            model_kwargs={"device": "cpu"},
+            encode_kwargs={"normalize_embeddings": True},
+        )
+    except Exception as e:
+        logger.warning("Primary HuggingFaceEmbeddings init failed (%s), trying low_cpu_mem_usage=False fallback...", e)
+        return HuggingFaceEmbeddings(
+            model_name=EMBEDDING_MODEL,
+            model_kwargs={"device": "cpu", "model_kwargs": {"low_cpu_mem_usage": False}},
+            encode_kwargs={"normalize_embeddings": True},
+        )
+
+
 def build_vector_store(force_rebuild: bool = False) -> Chroma:
     """
     Build (or load) the ChromaDB vector store using HuggingFaceEmbeddings.
-    - On Streamlit Cloud: the pre-built vectorstore/ folder can be committed or built on demand.
+    - On Streamlit Cloud: the pre-built vectorstore/ folder is committed to the repo.
     - Locally: set force_rebuild=True to re-ingest all PDFs from scratch.
     """
-    embeddings = HuggingFaceEmbeddings(
-        model_name=EMBEDDING_MODEL,
-        model_kwargs={"device": "cpu"},
-        encode_kwargs={"normalize_embeddings": True},
-    )
+    embeddings = get_embedding_function()
 
     if VECTOR_STORE_DIR.exists() and not force_rebuild:
         logger.info("Loading existing vector store from %s", VECTOR_STORE_DIR)
