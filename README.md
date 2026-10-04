@@ -24,6 +24,9 @@ Built with **LangChain 1.x LCEL**, **ChromaDB**, **Local HuggingFace Embeddings 
    - Case-study layout logic (server placement, repeaters, hubs/switches, network topologies).
    - Marking-scheme aligned Python code and dry-run tables.
 
+4. **Detailed Architecture & Flow Diagrams**:
+   - Comprehensive technical documentation available in [`ARCHITECTURE.md`](ARCHITECTURE.md).
+
 ---
 
 ## 📁 Project Structure
