@@ -6,30 +6,43 @@ and persists a ChromaDB vector store for retrieval.
 import os
 import logging
 from pathlib import Path
+from typing import List
 from dotenv import load_dotenv
 
 load_dotenv()  # load .env for local runs
 
-# Force CPU and disable meta-device loading — avoids NotImplementedError on Streamlit Cloud (Linux/Docker)
-os.environ.setdefault("SENTENCE_TRANSFORMERS_HOME", "/tmp/st_cache")
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-os.environ["ACCELERATE_USE_CPU"] = "true"
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_core.embeddings import Embeddings
 from langchain_chroma import Chroma
+import chromadb.utils.embedding_functions as ef
 
 from cs_tutor.config import (
     PDF_DIRS,
     VECTOR_STORE_DIR,
-    EMBEDDING_MODEL,
     CHUNK_SIZE,
     CHUNK_OVERLAP,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
+
+
+class SafeMiniLMEmbeddings(Embeddings):
+    """
+    Zero-torch-dependency ONNX-based all-MiniLM-L6-v2 embeddings.
+    Avoids PyTorch meta-device NotImplementedError on Streamlit Cloud Linux containers.
+    """
+    def __init__(self):
+        self._ef = ef.ONNXMiniLM_L6_V2()
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        return self._ef(texts)
+
+    def embed_query(self, text: str) -> List[float]:
+        return self._ef([text])[0]
 
 
 def load_pdfs(pdf_dirs: list[Path]) -> list:
@@ -47,26 +60,14 @@ def load_pdfs(pdf_dirs: list[Path]) -> list:
     return docs
 
 
-def get_embedding_function() -> HuggingFaceEmbeddings:
-    """Instantiate HuggingFaceEmbeddings with safe fallbacks for Streamlit Cloud."""
-    try:
-        return HuggingFaceEmbeddings(
-            model_name=EMBEDDING_MODEL,
-            model_kwargs={"device": "cpu"},
-            encode_kwargs={"normalize_embeddings": True},
-        )
-    except Exception as e:
-        logger.warning("Primary HuggingFaceEmbeddings init failed (%s), trying low_cpu_mem_usage=False fallback...", e)
-        return HuggingFaceEmbeddings(
-            model_name=EMBEDDING_MODEL,
-            model_kwargs={"device": "cpu", "model_kwargs": {"low_cpu_mem_usage": False}},
-            encode_kwargs={"normalize_embeddings": True},
-        )
+def get_embedding_function() -> Embeddings:
+    """Return rock-solid ONNX all-MiniLM-L6-v2 embedding model."""
+    return SafeMiniLMEmbeddings()
 
 
 def build_vector_store(force_rebuild: bool = False) -> Chroma:
     """
-    Build (or load) the ChromaDB vector store using HuggingFaceEmbeddings.
+    Build (or load) the ChromaDB vector store using ONNX embeddings.
     - On Streamlit Cloud: the pre-built vectorstore/ folder is committed to the repo.
     - Locally: set force_rebuild=True to re-ingest all PDFs from scratch.
     """
