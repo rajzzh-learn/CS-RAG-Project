@@ -14,7 +14,7 @@ import streamlit as st
 from cs_tutor.config import get_config
 from cs_tutor.ingest import build_vector_store
 from cs_tutor.rag_chain import build_rag_chain, convert_history
-from cs_tutor.file_utils import (
+from shared.file_utils import (
     extract_text_from_pdf,
     extract_text_from_txt,
     image_to_base64_uri,

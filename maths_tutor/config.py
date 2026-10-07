@@ -1,0 +1,45 @@
+"""
+Central configuration for the Maths Tutor RAG Agent.
+Reads secrets from Streamlit Cloud (st.secrets) when available,
+falls back to environment variables for local development.
+"""
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Base repo directory
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load local .env if present
+load_dotenv(BASE_DIR / ".env")
+
+
+def get_config(key: str, default: str = "") -> str:
+    """
+    Resolve a config value dynamically at runtime:
+    1. st.secrets  — when running on Streamlit Community Cloud
+    2. os.environ  — local .env / shell exports
+    3. default     — fallback
+    """
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets") and key in st.secrets:
+            return str(st.secrets[key])
+    except Exception:
+        pass
+    return os.environ.get(key, default)
+
+
+# ── Paths ──────────────────────────────────────────────────────────────────
+PDF_DIRS = [
+    BASE_DIR / "Maths",
+]
+VECTOR_STORE_DIR = BASE_DIR / "maths_tutor" / "vectorstore"
+
+# ── Embedding & LLM ────────────────────────────────────────────────────────
+EMBEDDING_MODEL = get_config("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+
+# ── Retrieval ──────────────────────────────────────────────────────────────
+RETRIEVER_TOP_K = int(get_config("RETRIEVER_TOP_K", "6"))
+CHUNK_SIZE = int(get_config("CHUNK_SIZE", "800"))
+CHUNK_OVERLAP = int(get_config("CHUNK_OVERLAP", "120"))
