@@ -1,5 +1,5 @@
 # CS Tutor RAG Agent — Python dependencies
-# Tested on Python 3.14
+# Tested on Python 3.12
 
 # Core LangChain (1.x LCEL API)
 langchain==1.4.3
@@ -9,24 +9,24 @@ langchain-huggingface==1.2.2
 langchain-openai==1.6.7
 
 # IBM watsonx.ai (alternative LLM backend)
-langchain-ibm==1.1.1
+langchain-ibm==1.1.2
 ibm-watsonx-ai==1.8.0
 
 # Vector store
 chromadb==1.5.9
 
 # PDF loading
-pypdf==5.4.0
-cryptography>=50.0.0
+pypdf==6.19.0
+cryptography==50.0.2
 
 # Embeddings
-sentence-transformers==3.4.1
+sentence-transformers==6.1.0
 
 # UI
-streamlit==1.45.1
+streamlit==1.65.0
 
 # Image processing (file attachment feature)
-Pillow==11.3.0
+Pillow==12.3.0
 
 # Utilities
-python-dotenv==1.1.0
+python-dotenv==1.2.4
