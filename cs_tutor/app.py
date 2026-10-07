@@ -150,16 +150,19 @@ for msg in st.session_state["messages"]:
 def _ask_vision_llm(question: str, image_data_uri: str, context_text: str) -> str:
     """
     Send a multimodal (text + image) message to a vision-capable LLM.
-    Supported providers: openai (gpt-4o), groq (llama-4-scout vision).
+    Supported providers: groq (llama-4-scout-17b), openai (gpt-4o).
+    Falls back gracefully for watsonx (no vision support).
     Returns the answer string.
     """
+    from openai import OpenAI
+
     provider = get_config("LLM_PROVIDER", "groq").lower()
 
     vision_message_content = [
         {
             "type": "text",
             "text": (
-                f"You are an expert Class 12 CBSE Computer Science teacher.\n\n"
+                "You are an expert Class 12 CBSE Computer Science teacher.\n\n"
                 f"Context from the student's study materials:\n{context_text}\n\n"
                 f"The student has attached an image and asks:\n{question}"
             ),
@@ -170,25 +173,17 @@ def _ask_vision_llm(question: str, image_data_uri: str, context_text: str) -> st
         },
     ]
 
-    if provider == "openai":
-        from openai import OpenAI
-        client = OpenAI(api_key=get_config("OPENAI_API_KEY"))
-        model = get_config("OPENAI_MODEL", "gpt-4o")
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": vision_message_content}],
-            max_tokens=4096,
-            temperature=0.3,
-        )
-        return resp.choices[0].message.content
-
-    elif provider == "groq":
-        from openai import OpenAI
+    if provider == "groq":
+        api_key = get_config("GROQ_API_KEY")
+        if not api_key:
+            return (
+                "⚠️ **Vision requires `GROQ_API_KEY`** to be set.\n\n"
+                "👉 Add it to your `.env` file or Streamlit Secrets, then reload the app."
+            )
         client = OpenAI(
-            api_key=get_config("GROQ_API_KEY"),
+            api_key=api_key,
             base_url="https://api.groq.com/openai/v1",
         )
-        # Use Groq's vision-capable model
         model = get_config("GROQ_VISION_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
         resp = client.chat.completions.create(
             model=model,
@@ -198,11 +193,28 @@ def _ask_vision_llm(question: str, image_data_uri: str, context_text: str) -> st
         )
         return resp.choices[0].message.content
 
-    else:
+    elif provider == "openai":
+        api_key = get_config("OPENAI_API_KEY")
+        if not api_key:
+            return (
+                "⚠️ **Vision requires `OPENAI_API_KEY`** to be set.\n\n"
+                "👉 Add it to your `.env` file or Streamlit Secrets, then reload the app."
+            )
+        client = OpenAI(api_key=api_key)
+        model = get_config("OPENAI_MODEL", "gpt-4o")
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": vision_message_content}],
+            max_tokens=4096,
+            temperature=0.3,
+        )
+        return resp.choices[0].message.content
+
+    else:  # watsonx or unknown
         return (
-            "⚠️ **Image vision is not supported for the `watsonx` provider.** "
-            "Please switch to `groq` or `openai` in your `.env` / Streamlit Secrets, "
-            "or describe your question in text instead."
+            "⚠️ **Image vision is not supported for the `watsonx` provider.**\n\n"
+            "👉 Switch to `LLM_PROVIDER = \"groq\"` or `\"openai\"` in your `.env` / Streamlit Secrets "
+            "to use image analysis, or describe your question in text instead."
         )
 
 
