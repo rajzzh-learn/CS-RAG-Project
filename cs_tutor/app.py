@@ -21,7 +21,7 @@ from cs_tutor.file_utils import (
     is_image,
     SUPPORTED_EXTS,
 )
-from streamlit_paste_button import paste_image_button
+from cs_tutor.components.paste_button import paste_image_button
 
 # ── Page config ────────────────────────────────────────────────────────────
 st.set_page_config(
