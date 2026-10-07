@@ -14,6 +14,13 @@ import streamlit as st
 from cs_tutor.config import get_config
 from cs_tutor.ingest import build_vector_store
 from cs_tutor.rag_chain import build_rag_chain, convert_history
+from cs_tutor.file_utils import (
+    extract_text_from_pdf,
+    extract_text_from_txt,
+    image_to_base64_uri,
+    is_image,
+    SUPPORTED_EXTS,
+)
 
 # ── Page config ────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -117,7 +124,8 @@ if "messages" not in st.session_state:
             "content": (
                 "👋 Hello! I'm your Class 12 Computer Science teacher, here to help you "
                 "ace your **CBSE Board Exams (Python 083)**.\n\n"
-                "Tell me which chapter, Python code, SQL query, or networking case study you'd like to work on!"
+                "Tell me which chapter, Python code, SQL query, or networking case study you'd like to work on! "
+                "You can also **attach an image, PDF, or text file** using the 📎 button below."
             ),
         }
     ]
@@ -125,31 +133,189 @@ if "messages" not in st.session_state:
 # Display existing messages
 for msg in st.session_state["messages"]:
     with st.chat_message(msg["role"]):
+        # Render an attached-file badge if present
+        if msg.get("attachment_name"):
+            st.caption(f"📎 **Attached:** `{msg['attachment_name']}`")
+            if msg.get("attachment_preview"):
+                with st.expander("👁️ Attachment preview", expanded=False):
+                    if msg.get("attachment_is_image"):
+                        st.image(msg["attachment_preview"], use_container_width=True)
+                    else:
+                        st.text(msg["attachment_preview"][:2000])
         st.markdown(msg["content"])
 
-# ── Chat input ─────────────────────────────────────────────────────────────
-if user_input := st.chat_input("Ask your CS teacher …"):
-    # Show student message
-    st.session_state["messages"].append({"role": "user", "content": user_input})
-    with st.chat_message("user"):
-        st.markdown(user_input)
 
-    # Get answer from RAG chain
+# ── Helper: call vision-capable LLM directly (image path) ──────────────────
+def _ask_vision_llm(question: str, image_data_uri: str, context_text: str) -> str:
+    """
+    Send a multimodal (text + image) message to a vision-capable LLM.
+    Supported providers: openai (gpt-4o), groq (llama-4-scout vision).
+    Returns the answer string.
+    """
+    provider = get_config("LLM_PROVIDER", "groq").lower()
+
+    vision_message_content = [
+        {
+            "type": "text",
+            "text": (
+                f"You are an expert Class 12 CBSE Computer Science teacher.\n\n"
+                f"Context from the student's study materials:\n{context_text}\n\n"
+                f"The student has attached an image and asks:\n{question}"
+            ),
+        },
+        {
+            "type": "image_url",
+            "image_url": {"url": image_data_uri},
+        },
+    ]
+
+    if provider == "openai":
+        from openai import OpenAI
+        client = OpenAI(api_key=get_config("OPENAI_API_KEY"))
+        model = get_config("OPENAI_MODEL", "gpt-4o")
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": vision_message_content}],
+            max_tokens=4096,
+            temperature=0.3,
+        )
+        return resp.choices[0].message.content
+
+    elif provider == "groq":
+        from openai import OpenAI
+        client = OpenAI(
+            api_key=get_config("GROQ_API_KEY"),
+            base_url="https://api.groq.com/openai/v1",
+        )
+        # Use Groq's vision-capable model
+        model = get_config("GROQ_VISION_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": vision_message_content}],
+            max_tokens=4096,
+            temperature=0.3,
+        )
+        return resp.choices[0].message.content
+
+    else:
+        return (
+            "⚠️ **Image vision is not supported for the `watsonx` provider.** "
+            "Please switch to `groq` or `openai` in your `.env` / Streamlit Secrets, "
+            "or describe your question in text instead."
+        )
+
+
+# ── Input area: file uploader + chat input ─────────────────────────────────
+ext_list = ", ".join(f".{e}" for e in sorted(SUPPORTED_EXTS))
+uploaded_file = st.file_uploader(
+    f"📎 Attach a file (optional) — {ext_list}",
+    type=list(SUPPORTED_EXTS),
+    label_visibility="visible",
+    help="Attach an image (screenshot of a question / diagram), PDF, or .txt file to include as extra context.",
+)
+
+if user_input := st.chat_input("Ask your CS teacher …"):
+    # ── Process attachment ────────────────────────────────────────────────
+    attachment_name: str | None = None
+    attachment_text: str | None = None       # extracted text (PDF / txt)
+    attachment_image_uri: str | None = None  # base64 data URI (images)
+    attachment_preview = None                # shown in expander
+    attachment_is_image = False
+
+    if uploaded_file is not None:
+        attachment_name = uploaded_file.name
+        file_bytes = uploaded_file.read()
+
+        if is_image(attachment_name):
+            attachment_image_uri, _ = image_to_base64_uri(file_bytes, attachment_name)
+            attachment_preview = file_bytes   # raw bytes → st.image
+            attachment_is_image = True
+        elif attachment_name.lower().endswith(".pdf"):
+            attachment_text = extract_text_from_pdf(file_bytes)
+            attachment_preview = attachment_text
+        else:  # .txt
+            attachment_text = extract_text_from_txt(file_bytes)
+            attachment_preview = attachment_text
+
+    # ── Build the display content for the user bubble ────────────────────
+    display_content = user_input
+
+    # ── Store user message ────────────────────────────────────────────────
+    user_msg: dict = {
+        "role": "user",
+        "content": display_content,
+        "attachment_name": attachment_name,
+        "attachment_preview": attachment_preview,
+        "attachment_is_image": attachment_is_image,
+    }
+    st.session_state["messages"].append(user_msg)
+
+    # Show student message
+    with st.chat_message("user"):
+        if attachment_name:
+            st.caption(f"📎 **Attached:** `{attachment_name}`")
+            if attachment_preview is not None:
+                with st.expander("👁️ Attachment preview", expanded=False):
+                    if attachment_is_image:
+                        st.image(attachment_preview, use_container_width=True)
+                    else:
+                        st.text(str(attachment_preview)[:2000])
+        st.markdown(display_content)
+
+    # ── Get answer from RAG chain ─────────────────────────────────────────
     with st.chat_message("assistant"):
         with st.spinner("Thinking …"):
             # Limit chat history to the last 2 turns (4 messages) to minimize prompt token footprint
             recent_messages = st.session_state["messages"][:-1]
             if len(recent_messages) > 4:
                 recent_messages = recent_messages[-4:]
-            chat_history = convert_history(recent_messages)
+
+            # Strip attachment metadata before passing to LangChain history
+            clean_history = [
+                {"role": m["role"], "content": m["content"]}
+                for m in recent_messages
+            ]
+            chat_history = convert_history(clean_history)
 
             try:
-                result = st.session_state["rag_chain"].invoke({
-                    "question": user_input,
-                    "chat_history": chat_history,
-                })
-                answer = result["answer"]
-                sources = result.get("source_documents", [])
+                # ── Image path: use vision LLM directly ──────────────────
+                if attachment_image_uri is not None:
+                    # Still run retriever to get relevant context chunks
+                    retriever = st.session_state["vector_store"].as_retriever(
+                        search_type="mmr",
+                        search_kwargs={"k": 6, "fetch_k": 20},
+                    )
+                    source_docs = retriever.invoke(user_input)
+                    context_text = "\n\n".join(
+                        f"Document {i+1} (Source: {d.metadata.get('source','?')}, "
+                        f"Page: {d.metadata.get('page','?')}):\n{d.page_content}"
+                        for i, d in enumerate(source_docs)
+                    )
+                    answer = _ask_vision_llm(user_input, attachment_image_uri, context_text)
+                    sources = source_docs
+
+                # ── Text/PDF attachment path: inject extracted text into query ─
+                elif attachment_text is not None:
+                    augmented_question = (
+                        f"{user_input}\n\n"
+                        f"--- Attached file: {attachment_name} ---\n"
+                        f"{attachment_text}"
+                    )
+                    result = st.session_state["rag_chain"].invoke({
+                        "question": augmented_question,
+                        "chat_history": chat_history,
+                    })
+                    answer = result["answer"]
+                    sources = result.get("source_documents", [])
+
+                # ── Plain text question (no attachment) ───────────────────
+                else:
+                    result = st.session_state["rag_chain"].invoke({
+                        "question": user_input,
+                        "chat_history": chat_history,
+                    })
+                    answer = result["answer"]
+                    sources = result.get("source_documents", [])
 
                 st.markdown(answer)
 
@@ -166,6 +332,7 @@ if user_input := st.chat_input("Ask your CS teacher …"):
                                 seen.add(label)
 
                 st.session_state["messages"].append({"role": "assistant", "content": answer})
+
             except Exception as e:
                 err_msg = str(e)
                 provider = get_config("LLM_PROVIDER", "groq").lower()
