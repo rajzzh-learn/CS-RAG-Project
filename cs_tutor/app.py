@@ -21,6 +21,7 @@ from cs_tutor.file_utils import (
     is_image,
     SUPPORTED_EXTS,
 )
+from streamlit_paste_button import paste_image_button
 
 # ── Page config ────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -205,14 +206,24 @@ def _ask_vision_llm(question: str, image_data_uri: str, context_text: str) -> st
         )
 
 
-# ── Input area: file uploader + chat input ─────────────────────────────────
+# ── Input area: file uploader + paste button + chat input ──────────────────
 ext_list = ", ".join(f".{e}" for e in sorted(SUPPORTED_EXTS))
-uploaded_file = st.file_uploader(
-    f"📎 Attach a file (optional) — {ext_list}",
-    type=list(SUPPORTED_EXTS),
-    label_visibility="visible",
-    help="Attach an image (screenshot of a question / diagram), PDF, or .txt file to include as extra context.",
-)
+
+col_upload, col_paste = st.columns([3, 1], vertical_alignment="bottom")
+with col_upload:
+    uploaded_file = st.file_uploader(
+        f"📎 Attach a file — {ext_list}",
+        type=list(SUPPORTED_EXTS),
+        label_visibility="visible",
+        help="Attach an image (screenshot of a question / diagram), PDF, or .txt file to include as extra context.",
+    )
+with col_paste:
+    paste_result = paste_image_button(
+        "📋 Paste image",
+        background_color="#444654",
+        hover_background_color="#565869",
+        key="clipboard_paste",
+    )
 
 if user_input := st.chat_input("Ask your CS teacher …"):
     # ── Process attachment ────────────────────────────────────────────────
@@ -222,7 +233,17 @@ if user_input := st.chat_input("Ask your CS teacher …"):
     attachment_preview = None                # shown in expander
     attachment_is_image = False
 
-    if uploaded_file is not None:
+    # Clipboard paste takes priority over file uploader
+    if paste_result.image_data is not None:
+        import io as _io
+        buf = _io.BytesIO()
+        paste_result.image_data.save(buf, format="PNG")
+        file_bytes = buf.getvalue()
+        attachment_name = "pasted-image.png"
+        attachment_image_uri, _ = image_to_base64_uri(file_bytes, attachment_name)
+        attachment_preview = file_bytes
+        attachment_is_image = True
+    elif uploaded_file is not None:
         attachment_name = uploaded_file.name
         file_bytes = uploaded_file.read()
 
