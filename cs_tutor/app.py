@@ -181,7 +181,7 @@ def _ask_vision_llm(question: str, image_data_uri: str, context_text: str) -> st
         f"The student has attached an image and asks:\n{question}"
     )
 
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-1.5-flash")
     response = model.generate_content(
         [
             prompt,
