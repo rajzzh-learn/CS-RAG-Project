@@ -182,7 +182,7 @@ def _ask_vision_llm(question: str, image_data_uri: str, context_text: str) -> st
 
     client = genai.Client(api_key=google_key)
     response = client.models.generate_content(
-        model="gemini-2.0-flash-lite",
+        model="gemini-3.5-flash-lite",
         contents=[
             prompt,
             types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
