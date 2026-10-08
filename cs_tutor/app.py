@@ -155,8 +155,9 @@ def _ask_vision_llm(question: str, image_data_uri: str, context_text: str) -> st
     Falls back gracefully when GOOGLE_API_KEY is not set.
     Returns the answer string.
     """
-    import google.generativeai as genai
     import base64, re
+    from google import genai
+    from google.genai import types
 
     google_key = get_config("GOOGLE_API_KEY")
     if not google_key:
@@ -165,8 +166,6 @@ def _ask_vision_llm(question: str, image_data_uri: str, context_text: str) -> st
             "👉 Get one at https://aistudio.google.com/app/apikey — it's free, no billing needed.\n"
             "Then add `GOOGLE_API_KEY = \"AIza...\"` to your `.env` file or Streamlit Secrets and reload the app."
         )
-
-    genai.configure(api_key=google_key)
 
     # Extract raw base64 bytes from the data URI (data:<mime>;base64,<data>)
     match = re.match(r"data:(?P<mime>[^;]+);base64,(?P<data>.+)", image_data_uri)
@@ -181,12 +180,13 @@ def _ask_vision_llm(question: str, image_data_uri: str, context_text: str) -> st
         f"The student has attached an image and asks:\n{question}"
     )
 
-    model = genai.GenerativeModel("gemini-1.5-flash")
-    response = model.generate_content(
-        [
+    client = genai.Client(api_key=google_key)
+    response = client.models.generate_content(
+        model="gemini-2.0-flash-lite",
+        contents=[
             prompt,
-            {"mime_type": mime_type, "data": image_bytes},
-        ]
+            types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+        ],
     )
     return response.text
 

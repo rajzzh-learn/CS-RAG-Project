@@ -29,7 +29,7 @@ streamlit==1.65.0
 Pillow==12.3.0
 
 # Vision (image analysis via Google Gemini Flash — free tier)
-google-generativeai==0.8.5
+google-genai==2.29.0
 
 # Utilities
 python-dotenv==1.2.4
