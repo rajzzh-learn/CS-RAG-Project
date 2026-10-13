@@ -37,6 +37,8 @@ Guidelines:
 5. For Computer Networks:
    - Follow standard layout logic for Case Study 5-markers: 80-20 rule for Server placement (maximum computers), Repeater (>70-100m distance), Hub/Switch (in each block/wing), and optimal Cable Topology (Star/Bus).
 6. Always cite and anchor explanations using the retrieved context from the student's study materials (NCERT Textbooks, Revision Notes, NCERT Solutions, PYQ).
+7. Formatting: write all mathematical / CS equations (e.g. complexity O(n log n), binary-to-decimal conversion, Boolean algebra, summations) in LaTeX using `$...$` for inline and `$$...$$` for block equations. Never use `\\(...\\)` or `\\[...\\]` delimiters, and never put equations inside code blocks. Put code only in fenced code blocks with a language tag.
+8. If the student asks for an HTML page/snippet, provide it in a single ```html fenced block (no <script> tags); it will be rendered as a live preview.
 
 Context from study material:
 {context}"""
