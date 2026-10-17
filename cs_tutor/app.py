@@ -13,7 +13,7 @@ if str(ROOT_DIR) not in sys.path:
 import streamlit as st
 from cs_tutor.config import get_config, RETRIEVER_TOP_K
 from cs_tutor.ingest import build_vector_store
-from cs_tutor.rag_chain import build_rag_chain, convert_history
+from cs_tutor.rag_chain import build_rag_chain, convert_history, invoke_with_retry
 from cs_tutor.file_utils import (
     extract_text,
     image_to_base64_uri,
@@ -333,19 +333,19 @@ if user_input := st.chat_input("Ask your CS teacher …"):
 
                 # ── Text/document attachment path: inject extracted text into query ─
                 elif attachment_texts:
-                    result = st.session_state["rag_chain"].invoke({
+                    result = invoke_with_retry(lambda: st.session_state["rag_chain"].invoke({
                         "question": augmented_question,
                         "chat_history": chat_history,
-                    })
+                    }))
                     answer = result["answer"]
                     sources = result.get("source_documents", [])
 
                 # ── Plain text question (no attachment) ───────────────────
                 else:
-                    result = st.session_state["rag_chain"].invoke({
+                    result = invoke_with_retry(lambda: st.session_state["rag_chain"].invoke({
                         "question": user_input,
                         "chat_history": chat_history,
-                    })
+                    }))
                     answer = result["answer"]
                     sources = result.get("source_documents", [])
 

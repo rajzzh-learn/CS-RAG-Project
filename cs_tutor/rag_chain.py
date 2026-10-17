@@ -3,6 +3,8 @@ RAG chain — CS Tutor persona.
 Uses LangChain 1.x LCEL pipeline.
 Supports Groq (openai/gpt-oss-120b), IBM watsonx.ai (Granite), and OpenAI as LLM backends.
 """
+import re
+import time
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
@@ -12,6 +14,27 @@ from cs_tutor.config import (
     get_config,
     RETRIEVER_TOP_K,
 )
+
+def is_rate_limit_error(exc: Exception) -> bool:
+    msg = str(exc).lower()
+    return "rate_limit" in msg or "rate limit" in msg or "429" in msg or "quota" in msg or "tokens per minute" in msg or "tpm" in msg
+
+def _retry_delay(exc: Exception, default: float) -> float:
+    m = re.search(r"try again in\s+(?:(\d+)m)?\s*([\d.]+)s", str(exc), re.IGNORECASE)
+    if m:
+        return min(float(m.group(1) or 0) * 60 + float(m.group(2)) + 1.0, 30.0)
+    return default
+
+def invoke_with_retry(fn, attempts: int = 5):
+    """Call fn(); on rate-limit errors wait for the reset delay and retry automatically."""
+    for attempt in range(attempts):
+        try:
+            return fn()
+        except Exception as exc:
+            if attempt == attempts - 1 or not is_rate_limit_error(exc):
+                raise
+            delay = _retry_delay(exc, default=min(2.5 * (attempt + 1), 15.0))
+            time.sleep(delay)
 
 # ── System prompt ──────────────────────────────────────────────────────────
 SYSTEM_PROMPT = """You are an expert Class 12 CBSE Computer Science teacher and mentor helping a student
@@ -86,14 +109,25 @@ def _build_llm():
             raise ValueError(
                 "Missing `GROQ_API_KEY`. Please configure it in Streamlit Cloud Secrets (Settings -> Secrets) or in your `.env` file."
             )
-        return ChatOpenAI(
+        primary_llm = ChatOpenAI(
             model=model,
             api_key=api_key,
             base_url="https://api.groq.com/openai/v1",
             temperature=0.3,
-            max_tokens=8192,
+            max_tokens=4096,
             max_retries=3,
         )
+
+        fallback_llm = ChatOpenAI(
+            model="openai/gpt-oss-20b",
+            api_key=api_key,
+            base_url="https://api.groq.com/openai/v1",
+            temperature=0.3,
+            max_tokens=4096,
+            max_retries=3,
+        )
+
+        return primary_llm.with_fallbacks([fallback_llm])
     else:
         from langchain_openai import ChatOpenAI
         api_key = get_config("OPENAI_API_KEY")
@@ -145,12 +179,17 @@ def build_rag_chain(vector_store):
     return chain
 
 
-def convert_history(raw_history: list[dict]) -> list:
-    """Convert Streamlit message dicts to LangChain message objects."""
+def convert_history(raw_history: list[dict], max_assistant_chars: int = 400) -> list:
+    """Convert Streamlit message dicts to LangChain message objects with token-safe compaction."""
     messages = []
     for msg in raw_history:
+        content = msg.get("content", "")
         if msg["role"] == "user":
-            messages.append(HumanMessage(content=msg["content"]))
+            messages.append(HumanMessage(content=content[:1000]))
         elif msg["role"] == "assistant":
-            messages.append(AIMessage(content=msg["content"]))
+            if len(content) > max_assistant_chars:
+                truncated = content[:max_assistant_chars].strip() + " ... [previous response summarized]"
+            else:
+                truncated = content
+            messages.append(AIMessage(content=truncated))
     return messages
