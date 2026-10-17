@@ -18,6 +18,7 @@ Built with **LangChain 1.x LCEL**, **ChromaDB**, **Local HuggingFace Embeddings 
    - 📝 **NCERT Solutions**: Chapters 1 to 12.
    - 📌 **Revision Notes**: Chapter-wise quick revision guides.
    - 📋 **Previous Year Papers (PYQ)**: CBSE Board Papers from 2013 to 2026 (2013–2019, 2022–2026).
+   - 🏆 **CBSE Question Bank**: Official Class XII Computer Science Question Bank with answer keys.
    - 🎯 **SSM Question Bank & Test Papers**: Question banks, answer keys, and school periodic tests.
 
 3. **Authentic CBSE Board Standard Prompting**:
@@ -51,6 +52,7 @@ CS RAG Project/
 ├── Notes/                           # CBSE chapter revision notes
 ├── PYQ/                             # CBSE Previous Year Question Papers
 ├── Lab Programs/                    # Class 12 Computer Science Lab Practicals
+├── CBSE Question Bank/              # Official CBSE Question Bank with Solutions
 ├── SSM Question Bank/               # Question Bank & Solutions Key
 └── SSM Question Paper so far/       # SSM School Periodic Tests & Model Papers
 ```

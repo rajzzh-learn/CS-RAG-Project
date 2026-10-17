@@ -37,6 +37,7 @@ PDF_DIRS = [
     BASE_DIR / "Notes",
     BASE_DIR / "PYQ",
     BASE_DIR / "Lab Programs",
+    BASE_DIR / "CBSE Question Bank",
     BASE_DIR / "SSM Question Bank",
     BASE_DIR / "SSM Question Paper so far",
 ]

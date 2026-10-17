@@ -33,7 +33,7 @@ st.set_page_config(
 )
 
 st.title("💻 Class 12 Computer Science Tutor")
-st.caption("Powered by your NCERT textbooks, chapter notes, solutions, and PYQs — CBSE Board Exam Edition")
+st.caption("Powered by your NCERT textbooks, chapter notes, solutions, PYQs (2013–2019, 2022–2026), and SSM School Question Papers — CBSE Board Exam Edition")
 
 # ── Sidebar ────────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -79,18 +79,42 @@ with st.sidebar:
 | 📌 Revision Notes | [Notes]({REPO}/Notes) |
 | 📋 Previous Year Papers (PYQ) | [PYQ]({REPO}/PYQ) |
 | 💻 Lab Programs | [Lab Programs]({REPO}/Lab%20Programs) |
+| 🏆 CBSE Official Question Bank | [CBSE Question Bank]({REPO}/CBSE%20Question%20Bank) |
 | 🎯 SSM Question Bank | [SSM Question Bank]({REPO}/SSM%20Question%20Bank) |
 | 📝 SSM Question Papers | [SSM Question Paper so far]({REPO}/SSM%20Question%20Paper%20so%20far) |
 """)
+
+    with st.expander("📋 Browse Available PYQ & Question Banks (2013–2026)", expanded=False):
+        st.markdown(f"""
+- **🏆 Official CBSE Question Bank**: [Class XII CS Question Bank with Solutions]({REPO}/CBSE%20Question%20Bank/QuestionBankComputerScienceXII.pdf)
+- **2025–2026**: [CBSE CS Sample / Board Paper]({REPO}/PYQ/CBSE%20Class%2012%20Computer%20Science%20Question%20Paper%202025-2026.pdf)
+- **2024**: [CBSE CS Board Paper (Code 91)]({REPO}/PYQ/CBSE%20Class%2012%20Computer%20Science%20Question%20Paper%202024.pdf)
+- **2023**: [CBSE CS Board Paper (Code 91)]({REPO}/PYQ/CBSE%20Class%2012%20Computer%20Science%20Question%20Paper%202023.pdf)
+- **2022**: [CBSE CS Term-2 Board Paper]({REPO}/PYQ/CBSE%20Class%2012%20Computer%20Science%20Question%20Paper%202022.pdf)
+- **2019**: [CBSE CS Board Paper]({REPO}/PYQ/Previous%20Year%20Computer%20Science%20Question%20Paper%20for%20CBSE%20Class%2012%20-%202019.pdf)
+- **2018**: [CBSE CS Board Paper]({REPO}/PYQ/Previous%20Year%20Computer%20Science%20Question%20Paper%20for%20CBSE%20Class%2012%20-%202018.pdf)
+- **2017**: [CBSE CS Board Paper]({REPO}/PYQ/Previous%20Year%20Computer%20Science%20Question%20Paper%20for%20CBSE%20Class%2012%20-%202017.pdf)
+- **2016**: [CBSE CS Board Paper]({REPO}/PYQ/Previous%20Year%20Computer%20Science%20Question%20Paper%20for%20CBSE%20Class%2012%20-%202016.pdf)
+- **2015**: [CBSE CS Board Paper]({REPO}/PYQ/Previous%20Year%20Computer%20Science%20Question%20Paper%20for%20CBSE%20Class%2012%20-%202015.pdf)
+- **2014**: [CBSE CS Board Paper]({REPO}/PYQ/Previous%20Year%20Computer%20Science%20Question%20Paper%20for%20CBSE%20Class%2012%20-%202014.pdf)
+- **2013**: [CBSE CS Board Paper with Solutions]({REPO}/PYQ/CBSE%20Class%2012%20Computer%20Science%20Question%20Paper%202013%20with%20Solutions.pdf)
+- **🎯 SSM School Tests**: [SSM School Periodic Tests (2026–2027)]({REPO}/SSM%20Question%20Paper%20so%20far/SSM%20School%20Computer%20Test.pdf)
+
+*(Note: 2020 & 2021 are not in collection; 2021 exams were cancelled due to COVID)*
+""")
+
     st.divider()
 
     st.markdown("**💡 Try asking:**")
     st.markdown("""
-- *Write a Python program to read and count words in a text file*
+- *Show CSV and binary file questions from the CBSE Question Bank*
+- *List SQL questions asked in the 2025-2026 CBSE paper*
+- *What questions were asked in the 2024 CBSE Board exam?*
+- *What Stack questions were asked in the 2022 CBSE paper?*
 - *Explain binary file handling using pickle dump and load with EOFError*
 - *Write Push and Pop functions for a list-based Stack in Python*
 - *Solve a 5-mark Computer Networks Case Study for server & repeater placement*
-- *Write SQL queries with GROUP BY, HAVING, and Equi-Join*
+- *What topics were tested in the SSM School Periodic Test 1?*
 """)
     st.divider()
     if st.button("🔄 Rebuild Vector Store"):
