@@ -11,7 +11,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 import streamlit as st
-from cs_tutor.config import get_config
+from cs_tutor.config import get_config, RETRIEVER_TOP_K
 from cs_tutor.ingest import build_vector_store
 from cs_tutor.rag_chain import build_rag_chain, convert_history
 from cs_tutor.file_utils import (
@@ -296,7 +296,7 @@ if user_input := st.chat_input("Ask your CS teacher …"):
                     # Still run retriever to get relevant context chunks
                     retriever = st.session_state["vector_store"].as_retriever(
                         search_type="mmr",
-                        search_kwargs={"k": 6, "fetch_k": 20},
+                        search_kwargs={"k": RETRIEVER_TOP_K, "fetch_k": max(30, RETRIEVER_TOP_K * 3)},
                     )
                     source_docs = retriever.invoke(user_input)
                     context_text = "\n\n".join(

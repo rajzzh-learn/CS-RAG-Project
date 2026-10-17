@@ -119,7 +119,7 @@ def build_rag_chain(vector_store):
     llm = _build_llm()
     retriever = vector_store.as_retriever(
         search_type="mmr",
-        search_kwargs={"k": RETRIEVER_TOP_K, "fetch_k": 20},
+        search_kwargs={"k": RETRIEVER_TOP_K, "fetch_k": max(30, RETRIEVER_TOP_K * 3)},
     )
 
     prompt = ChatPromptTemplate.from_messages([

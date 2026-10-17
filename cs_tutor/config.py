@@ -46,6 +46,6 @@ VECTOR_STORE_DIR = BASE_DIR / "cs_tutor" / "vectorstore"
 EMBEDDING_MODEL = get_config("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 
 # ── Retrieval ──────────────────────────────────────────────────────────────
-RETRIEVER_TOP_K = int(get_config("RETRIEVER_TOP_K", "6"))
+RETRIEVER_TOP_K = int(get_config("RETRIEVER_TOP_K", "10"))
 CHUNK_SIZE = int(get_config("CHUNK_SIZE", "800"))
 CHUNK_OVERLAP = int(get_config("CHUNK_OVERLAP", "120"))

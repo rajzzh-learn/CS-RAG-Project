@@ -17,7 +17,7 @@ Built with **LangChain 1.x LCEL**, **ChromaDB**, **Local HuggingFace Embeddings 
    - 📖 **Textbooks**: NCERT Class 12 Computer Science Python Volumes.
    - 📝 **NCERT Solutions**: Chapters 1 to 12.
    - 📌 **Revision Notes**: Chapter-wise quick revision guides.
-   - 📋 **Previous Year Papers (PYQ)**: CBSE Board Papers from 2013 to 2025 (2013–2019, 2022–2025).
+   - 📋 **Previous Year Papers (PYQ)**: CBSE Board Papers from 2013 to 2026 (2013–2019, 2022–2026).
    - 🎯 **SSM Question Bank & Test Papers**: Question banks, answer keys, and school periodic tests.
 
 3. **Authentic CBSE Board Standard Prompting**:
@@ -75,7 +75,7 @@ LLM_PROVIDER = "groq"
 GROQ_API_KEY = "gsk_..."
 GROQ_MODEL = "openai/gpt-oss-120b"
 EMBEDDING_MODEL = sentence-transformers/all-MiniLM-L6-v2
-RETRIEVER_TOP_K = 6
+RETRIEVER_TOP_K = 10
 CHUNK_SIZE = 800
 CHUNK_OVERLAP = 120
 ```
