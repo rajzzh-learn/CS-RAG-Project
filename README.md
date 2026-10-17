@@ -13,11 +13,12 @@ Built with **LangChain 1.x LCEL**, **ChromaDB**, **Local HuggingFace Embeddings 
    - Local, high-speed HuggingFace embeddings (`sentence-transformers/all-MiniLM-L6-v2`) running locally on CPU.
    - Streamlit Cloud ready with dynamic secret resolver via `get_config()` (`st.secrets` & `.env` fallback).
 
-2. **Complete CBSE Class 12 CS Knowledge Base (1,157 pages)**:
+2. **Complete CBSE Class 12 CS Knowledge Base (1,211 pages, 1,826 chunks)**:
    - 📖 **Textbooks**: NCERT Class 12 Computer Science Python Volumes.
    - 📝 **NCERT Solutions**: Chapters 1 to 12.
    - 📌 **Revision Notes**: Chapter-wise quick revision guides.
-   - 📋 **Previous Year Papers (PYQ)**: CBSE Board Papers from 2013 to 2026 (2013–2019, 2022–2026).
+   - 📋 **Previous Year Papers (PYQ)**: CBSE Board Papers (2013–2019, 2022–2026).
+   - 💻 **Lab Programs**: Official Python & SQL practical file programs (Lab 21–25).
    - 🏆 **CBSE Question Bank**: Official Class XII Computer Science Question Bank with answer keys.
    - 🎯 **SSM Question Bank & Test Papers**: Question banks, answer keys, and school periodic tests.
 

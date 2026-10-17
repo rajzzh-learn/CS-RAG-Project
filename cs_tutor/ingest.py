@@ -95,6 +95,10 @@ def build_vector_store(force_rebuild: bool = False) -> Chroma:
         separators=["\n\n", "\n", ". ", " ", ""],
     )
     chunks = splitter.split_documents(raw_docs)
+    for chunk in chunks:
+        src_stem = Path(chunk.metadata.get("source", "")).stem
+        page_num = chunk.metadata.get("page", 0) + 1
+        chunk.page_content = f"[{src_stem} | Page {page_num}]\n{chunk.page_content}"
     logger.info("Total chunks: %d", len(chunks))
 
     import shutil
