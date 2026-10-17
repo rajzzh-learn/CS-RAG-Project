@@ -29,6 +29,8 @@ from cs_tutor.config import (
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
 
+COLLECTION_NAME = "cs_tutor_kb"
+
 
 class SafeMiniLMEmbeddings(Embeddings):
     """
@@ -75,10 +77,14 @@ def build_vector_store(force_rebuild: bool = False) -> Chroma:
 
     if VECTOR_STORE_DIR.exists() and not force_rebuild:
         logger.info("Loading existing vector store from %s", VECTOR_STORE_DIR)
-        return Chroma(
-            persist_directory=str(VECTOR_STORE_DIR),
-            embedding_function=embeddings,
-        )
+        try:
+            return Chroma(
+                collection_name=COLLECTION_NAME,
+                persist_directory=str(VECTOR_STORE_DIR),
+                embedding_function=embeddings,
+            )
+        except Exception as e:
+            logger.warning("Error loading existing vector store (%s), rebuilding...", e)
 
     logger.info("Building vector store — this may take a few minutes …")
     raw_docs = load_pdfs(PDF_DIRS)
@@ -96,6 +102,7 @@ def build_vector_store(force_rebuild: bool = False) -> Chroma:
         shutil.rmtree(VECTOR_STORE_DIR, ignore_errors=True)
     VECTOR_STORE_DIR.mkdir(parents=True, exist_ok=True)
     vector_store = Chroma.from_documents(
+        collection_name=COLLECTION_NAME,
         documents=chunks,
         embedding=embeddings,
         persist_directory=str(VECTOR_STORE_DIR),
