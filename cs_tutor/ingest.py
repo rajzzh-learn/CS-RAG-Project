@@ -91,6 +91,9 @@ def build_vector_store(force_rebuild: bool = False) -> Chroma:
     chunks = splitter.split_documents(raw_docs)
     logger.info("Total chunks: %d", len(chunks))
 
+    import shutil
+    if VECTOR_STORE_DIR.exists():
+        shutil.rmtree(VECTOR_STORE_DIR, ignore_errors=True)
     VECTOR_STORE_DIR.mkdir(parents=True, exist_ok=True)
     vector_store = Chroma.from_documents(
         documents=chunks,

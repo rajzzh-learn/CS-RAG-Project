@@ -38,6 +38,7 @@ PDF_DIRS = [
     BASE_DIR / "PYQ",
     BASE_DIR / "Lab Programs",
     BASE_DIR / "SSM Question Bank",
+    BASE_DIR / "SSM Question Paper so far",
 ]
 VECTOR_STORE_DIR = BASE_DIR / "cs_tutor" / "vectorstore"
 

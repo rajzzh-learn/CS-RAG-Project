@@ -13,13 +13,14 @@ The CS AI Tutor follows a decoupled, cloud-resilient RAG architecture designed f
 
 ```mermaid
 flowchart TB
-    subgraph DataSources["📚 CBSE CS Knowledge Base (1,199 Pages)"]
+    subgraph DataSources["📚 CBSE CS Knowledge Base (1,184 Pages)"]
         TB["📖 NCERT Textbooks\n(book/)"]
         SOL["📝 NCERT Solutions\n(Ncert Solutions/)"]
         REV["📌 Revision Notes\n(Notes/)"]
-        PYQ["📋 PYQ Papers 2013-2019\n(PYQ/)"]
+        PYQ["📋 PYQ Papers 2013-2025\n(PYQ/)"]
         LAB["💻 Lab Programs\n(Lab Programs/)"]
         SSM["🎯 SSM Question Bank\n(SSM Question Bank/)"]
+        SSMP["📝 SSM Question Papers\n(SSM Question Paper so far/)"]
     end
 
     subgraph IngestionSubsystem["⚙️ Ingestion & Indexing Pipeline"]
