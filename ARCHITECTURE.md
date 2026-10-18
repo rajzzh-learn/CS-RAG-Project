@@ -232,7 +232,7 @@ The LLM logic is no longer duplicated per subject. It lives in the
 ```
 Layer 1 — Retrieve   ChromaDB MMR search over this subject's PDFs
 Layer 2 — Generate   LLM (Groq / OpenAI / watsonx) answers using the retrieved context
-Layer 3 — Validate   Gemini fact-checks the answer (opt-in, ENABLE_VALIDATION=true)
+Layer 3 — Validate   Gemini and/or OpenAI GPT-4o fact-check the answer, with automatic fallback (opt-in, ENABLE_VALIDATION=true)
 ```
 
 | Concern | Where | Behaviour |
@@ -247,4 +247,4 @@ Layer 3 — Validate   Gemini fact-checks the answer (opt-in, ENABLE_VALIDATION=
 
 Required secrets / environment variables (see `.env.example`):
 `LLM_PROVIDER`, `GROQ_API_KEY` (or `OPENAI_API_KEY` / `WATSONX_*`),
-`GOOGLE_API_KEY` and `ENABLE_VALIDATION=true` for Layer 3.
+`ENABLE_VALIDATION=true` plus `GOOGLE_API_KEY` (Gemini) and/or `OPENAI_API_KEY` (GPT-4o) for Layer 3 — set both for fallback; `VALIDATION_PROVIDER` picks the first choice; optional `OPENAI_VALIDATOR_MODEL`, `PYQ_RETRIEVER_TOP_K`.
