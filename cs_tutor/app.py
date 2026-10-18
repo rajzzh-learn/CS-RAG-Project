@@ -24,7 +24,7 @@ from cs_tutor.file_utils import (
     SUPPORTED_EXTS,
 )
 from cs_tutor.components.paste_button import paste_image_button
-from shared_tutor.validator import validate_answer
+from shared_tutor.validator import validate_answer, show_validation_badge
 
 # ── Page config ────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -348,9 +348,9 @@ if user_input := st.chat_input("Ask your CS teacher …"):
                     answer = result["answer"]
                     sources = result.get("source_documents", [])
 
-                # ── Layer 3: Gemini validation ──────────────────────
+                # ── Layer 3: multi-LLM validation ──────────────────────
                 context_for_validation = "\n\n".join(
-                    d.page_content for d in sources[:4]
+                    d.page_content for d in sources
                 ) if sources else ""
                 validation = validate_answer(
                     subject="Computer Science",
@@ -359,12 +359,7 @@ if user_input := st.chat_input("Ask your CS teacher …"):
                     answer=answer,
                 )
                 answer = validation.answer
-                if validation.status == "corrected":
-                    st.warning("⚠️ **Answer corrected by Gemini validator**")
-                    for corr in validation.corrections:
-                        st.caption(f"• {corr}")
-                elif validation.status == "verified":
-                    st.success("✅ Answer verified")
+                show_validation_badge(validation)
                 render_answer(answer)
 
                 # Show source references (collapsed)
