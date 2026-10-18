@@ -24,6 +24,7 @@ from cs_tutor.file_utils import (
     SUPPORTED_EXTS,
 )
 from cs_tutor.components.paste_button import paste_image_button
+from shared_tutor.validator import validate_answer
 
 # ── Page config ────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -232,7 +233,7 @@ def _ask_vision_llm(question: str, image_data_uris: list[str], context_text: str
 
     client = genai.Client(api_key=google_key)
     response = client.models.generate_content(
-        model="gemini-3.5-flash-lite",
+        model="gemini-2.0-flash-lite",
         contents=[prompt, *image_parts],
     )
     return response.text
@@ -298,10 +299,8 @@ if user_input := st.chat_input("Ask your CS teacher …"):
     # ── Get answer from RAG chain ─────────────────────────────────────────
     with st.chat_message("assistant"):
         with st.spinner("Thinking …"):
-            # Limit chat history to the last 2 turns (4 messages) to minimize prompt token footprint
+            # Pass full history — convert_history manages the token budget automatically
             recent_messages = st.session_state["messages"][:-1]
-            if len(recent_messages) > 4:
-                recent_messages = recent_messages[-4:]
 
             # Strip attachment metadata before passing to LangChain history
             clean_history = [
@@ -349,6 +348,23 @@ if user_input := st.chat_input("Ask your CS teacher …"):
                     answer = result["answer"]
                     sources = result.get("source_documents", [])
 
+                # ── Layer 3: Gemini validation ──────────────────────
+                context_for_validation = "\n\n".join(
+                    d.page_content for d in sources[:4]
+                ) if sources else ""
+                validation = validate_answer(
+                    subject="Computer Science",
+                    question=user_input,
+                    context=context_for_validation,
+                    answer=answer,
+                )
+                answer = validation.answer
+                if validation.status == "corrected":
+                    st.warning("⚠️ **Answer corrected by Gemini validator**")
+                    for corr in validation.corrections:
+                        st.caption(f"• {corr}")
+                elif validation.status == "verified":
+                    st.success("✅ Answer verified")
                 render_answer(answer)
 
                 # Show source references (collapsed)

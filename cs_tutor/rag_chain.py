@@ -1,42 +1,19 @@
 """
-RAG chain — CS Tutor persona.
-Uses LangChain 1.x LCEL pipeline.
-Supports Groq (openai/gpt-oss-120b), IBM watsonx.ai (Granite), and OpenAI as LLM backends.
+RAG chain — CS Tutor.
+All shared logic lives in shared_tutor.rag_chain.
+This file only holds the CS SYSTEM_PROMPT and re-exports what app.py needs.
 """
-import re
-import time
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough, RunnableLambda
-from langchain_core.messages import HumanMessage, AIMessage
+from __future__ import annotations
 
-from cs_tutor.config import (
-    get_config,
-    RETRIEVER_TOP_K,
+from shared_tutor.rag_chain import (   # noqa: F401
+    build_llm,
+    convert_history,
+    invoke_with_retry,
+    is_rate_limit_error,
 )
+from shared_tutor.rag_chain import build_rag_chain as _build_rag_chain
+from cs_tutor.config import RETRIEVER_TOP_K
 
-def is_rate_limit_error(exc: Exception) -> bool:
-    msg = str(exc).lower()
-    return "rate_limit" in msg or "rate limit" in msg or "429" in msg or "quota" in msg or "tokens per minute" in msg or "tpm" in msg
-
-def _retry_delay(exc: Exception, default: float) -> float:
-    m = re.search(r"try again in\s+(?:(\d+)m)?\s*([\d.]+)s", str(exc), re.IGNORECASE)
-    if m:
-        return min(float(m.group(1) or 0) * 60 + float(m.group(2)) + 1.0, 30.0)
-    return default
-
-def invoke_with_retry(fn, attempts: int = 5):
-    """Call fn(); on rate-limit errors wait for the reset delay and retry automatically."""
-    for attempt in range(attempts):
-        try:
-            return fn()
-        except Exception as exc:
-            if attempt == attempts - 1 or not is_rate_limit_error(exc):
-                raise
-            delay = _retry_delay(exc, default=min(2.5 * (attempt + 1), 15.0))
-            time.sleep(delay)
-
-# ── System prompt ──────────────────────────────────────────────────────────
 SYSTEM_PROMPT = """You are an expert Class 12 CBSE Computer Science teacher and mentor helping a student
 prepare for the CBSE Board Exams (Python code 083). Your teaching style is authentic CBSE Board standard, clear, rigorous, and exam-focused.
 
@@ -63,134 +40,16 @@ Guidelines:
 6. Always cite and anchor explanations using the retrieved context from the student's study materials (NCERT Textbooks, Revision Notes, NCERT Solutions, PYQ, Question Banks).
 7. Formatting: write all mathematical / CS equations (e.g. complexity O(n log n), binary-to-decimal conversion, Boolean algebra, summations) in LaTeX using `$...$` for inline and `$$...$$` for block equations. Never use `\\(...\\)` or `\\[...\\]` delimiters, and never put equations inside code blocks. Put code only in fenced code blocks with a language tag.
 8. If the student asks for an HTML page/snippet, provide it in a single ```html fenced block (no <script> tags); it will be rendered as a live preview.
+9. When correcting a previous answer: always re-state ALL original questions in full before giving the correction. Never drop or truncate any part of a previously asked question.
 
 Context from study material:
 {context}"""
 
 
-def _format_docs(docs) -> str:
-    return "\n\n".join(doc.page_content for doc in docs)
-
-
-def _build_llm():
-    """Instantiate the LLM based on dynamic configuration."""
-    provider = get_config("LLM_PROVIDER", "groq").lower()
-
-    if provider == "watsonx":
-        from langchain_ibm import WatsonxLLM
-        apikey = get_config("WATSONX_APIKEY") or get_config("WATSONX_API_KEY")
-        return WatsonxLLM(
-            model_id=get_config("WATSONX_MODEL_ID") or get_config("WATSONX_MODEL", "ibm/granite-3-8b-instruct"),
-            url=get_config("WATSONX_URL", "https://us-south.ml.cloud.ibm.com"),
-            apikey=apikey,
-            project_id=get_config("WATSONX_PROJECT_ID"),
-            params={
-                "max_new_tokens": 8192,
-                "temperature": 0.3,
-                "repetition_penalty": 1.1,
-            },
-        )
-    elif provider == "groq":
-        from langchain_openai import ChatOpenAI
-        api_key = get_config("GROQ_API_KEY")
-        raw_model = get_config("GROQ_MODEL", "openai/gpt-oss-120b")
-
-        # Map deprecated or alias names to active Groq models
-        model_aliases = {
-            "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
-            "llama-3.1-8b-instant": "openai/gpt-oss-20b",
-            "llama3-70b-8192": "openai/gpt-oss-120b",
-            "llama3-8b-8192": "openai/gpt-oss-20b",
-            "mixtral-8x7b-32768": "openai/gpt-oss-120b",
-            "qwen/qwen3.8-27b": "openai/gpt-oss-120b",
-        }
-        model = model_aliases.get(raw_model, raw_model)
-
-        if not api_key:
-            raise ValueError(
-                "Missing `GROQ_API_KEY`. Please configure it in Streamlit Cloud Secrets (Settings -> Secrets) or in your `.env` file."
-            )
-        primary_llm = ChatOpenAI(
-            model=model,
-            api_key=api_key,
-            base_url="https://api.groq.com/openai/v1",
-            temperature=0.3,
-            max_tokens=4096,
-            max_retries=3,
-        )
-
-        fallback_llm = ChatOpenAI(
-            model="openai/gpt-oss-20b",
-            api_key=api_key,
-            base_url="https://api.groq.com/openai/v1",
-            temperature=0.3,
-            max_tokens=4096,
-            max_retries=3,
-        )
-
-        return primary_llm.with_fallbacks([fallback_llm])
-    else:
-        from langchain_openai import ChatOpenAI
-        api_key = get_config("OPENAI_API_KEY")
-        model = get_config("OPENAI_MODEL", "gpt-4o")
-        if not api_key:
-            raise ValueError(
-                "Missing `OPENAI_API_KEY`. Please configure it in Streamlit Cloud Secrets (Settings -> Secrets) or provide it via sidebar."
-            )
-        return ChatOpenAI(
-            model=model,
-            api_key=api_key,
-            temperature=0.3,
-            max_tokens=8192,
-        )
-
-
 def build_rag_chain(vector_store):
-    """
-    Return a callable RAG chain with chat history support.
-    Interface: chain.invoke({"question": str, "chat_history": list[dict]})
-    Returns: {"answer": str, "source_documents": list}
-    """
-    llm = _build_llm()
-    retriever = vector_store.as_retriever(
-        search_type="mmr",
-        search_kwargs={"k": RETRIEVER_TOP_K, "fetch_k": max(30, RETRIEVER_TOP_K * 3)},
+    """Build the CS RAG chain using the shared builder."""
+    return _build_rag_chain(
+        vector_store=vector_store,
+        system_prompt=SYSTEM_PROMPT,
+        retriever_top_k=RETRIEVER_TOP_K,
     )
-
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", SYSTEM_PROMPT),
-        MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{question}"),
-    ])
-
-    # Build LCEL chain
-    chain = (
-        RunnablePassthrough.assign(
-            context=RunnableLambda(lambda x: _format_docs(
-                retriever.invoke(x["question"])
-            )),
-        )
-        | RunnablePassthrough.assign(
-            source_documents=RunnableLambda(lambda x: retriever.invoke(x["question"]))
-        )
-        | RunnablePassthrough.assign(
-            answer=prompt | llm | StrOutputParser()
-        )
-    )
-    return chain
-
-
-def convert_history(raw_history: list[dict], max_assistant_chars: int = 400) -> list:
-    """Convert Streamlit message dicts to LangChain message objects with token-safe compaction."""
-    messages = []
-    for msg in raw_history:
-        content = msg.get("content", "")
-        if msg["role"] == "user":
-            messages.append(HumanMessage(content=content[:1000]))
-        elif msg["role"] == "assistant":
-            if len(content) > max_assistant_chars:
-                truncated = content[:max_assistant_chars].strip() + " ... [previous response summarized]"
-            else:
-                truncated = content
-            messages.append(AIMessage(content=truncated))
-    return messages
